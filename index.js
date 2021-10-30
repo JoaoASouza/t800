@@ -2,6 +2,10 @@ const { Client, Intents } = require('discord.js')
 const { birthdays } = require('./birthdays.json')
 const cron = require('cron')
 
+const dotenv = require('dotenv');
+
+dotenv.config();
+
 const token = process.env.DISCORD_TOKEN
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS]})
