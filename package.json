@@ -4,8 +4,7 @@
   "description": "Personal discord bot",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
@@ -20,7 +19,8 @@
   "dependencies": {
     "cron": "^1.8.2",
     "discord.js": "^13.3.0",
-    "dotenv": "^10.0.0"
+    "dotenv": "^10.0.0",
+    "node-fetch": "^3.0.0"
   },
   "engines": {
     "npm": "8.1.0",
