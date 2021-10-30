@@ -2,12 +2,6 @@ const { Client, Intents } = require('discord.js')
 const { birthdays } = require('./birthdays.json')
 const cron = require('cron')
 
-const dotenv = require('dotenv');
-
-dotenv.config();
-
-const token = process.env.DISCORD_TOKEN
-
 const client = new Client({ intents: [Intents.FLAGS.GUILDS]})
 
 function prepareBirthdayMessage(userName, birthDay) {
@@ -35,4 +29,4 @@ client.once('ready', () => {
     })
 })
 
-client.login(token)
+client.login(process.env.DISCORD_TOKEN)
