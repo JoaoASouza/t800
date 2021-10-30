@@ -1,0 +1,19 @@
+{
+  "name": "t800",
+  "version": "1.0.0",
+  "description": "Personal discord bot",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JoaoASouza/t800.git"
+  },
+  "author": "Joao De Souza",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JoaoASouza/t800/issues"
+  },
+  "homepage": "https://github.com/JoaoASouza/t800#readme"
+}
