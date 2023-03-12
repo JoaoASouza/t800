@@ -1,78 +1,81 @@
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
-const { Client, Intents, Message } = require('discord.js')
-const { birthdays } = require('./birthdays.json')
-const cron = require('cron')
+const fs = require('node:fs');
+const path = require('node:path');
 
-const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES]})
+const { Client, Events, Intents, GatewayIntentBits, Collection } = require('discord.js')
+const { DisTube } = require('distube');
 
-function prepareBirthdayMessage(userName, birthDay) {
+const { token } = require('./config.json')
 
-    let scheduledMessage = new cron.CronJob(`00 01 00 ${birthDay.getDate() + 1} ${birthDay.getMonth()} *`, () => {
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildVoiceStates
+    ]
+})
 
-        const guild = client.guilds.cache.get('759556197887639572')
-        const channel = guild.channels.cache.get('904039024300269599')
+const distube = new DisTube(client, {
+	searchSongs: 5,
+	searchCooldown: 30,
+	leaveOnEmpty: false,
+	leaveOnFinish: false,
+	leaveOnStop: false,
+});
 
-        channel.send(`Parabéns, ${userName}!`)
+distube
+    .on('playSong', (queue, song) =>
+        queue.textChannel.send(
+            `Tocando \`${song.name}\` - \`${song.formattedDuration}\``
+        )
+    )
+    .on('addSong', (queue, song) =>
+        queue.textChannel.send(
+            `${song.name} - \`${song.formattedDuration}\` foi adicionada à fila`
+        )
+    )
 
-    })
+client.commands = new Collection()
 
-    scheduledMessage.start()
+const commandsPath = path.join(__dirname, 'commands');
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
+for (const file of commandFiles) {
+	const filePath = path.join(commandsPath, file);
+	const command = require(filePath);
+	// Set a new item in the Collection with the key as the command name and the value as the exported module
+	if ('data' in command && 'execute' in command) {
+		client.commands.set(command.data.name, command);
+	} else {
+		console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+	}
 }
 
-client.once('ready', () => {
+client.once(Events.ClientReady, () => {
     console.log("Tudo pronto")
-
-    birthdays.forEach(birthday => {
-
-        let birthdayDate = new Date(birthday.date)
-        prepareBirthdayMessage(birthday.name, birthdayDate)
-
-    })
 })
 
-client.on("messageCreate", (msg) => {
+client.on(Events.InteractionCreate, async interaction => {
+    if (!interaction.isChatInputCommand()) return;
 
-    if (msg.author.bot) return
+    const command = interaction.client.commands.get(interaction.commandName);
 
-    const prefix = "$"
-    if (!msg.content.startsWith(prefix)) return
+	if (!command) {
+		console.error(`No command matching ${interaction.commandName} was found.`);
+		return;
+	}
 
-    const message = msg.content.slice(1)
-    const tokens = message.split(" ")
+	try {
+		await command.execute(interaction, distube);
+	} catch (error) {
+		console.error(error);
+		if (interaction.replied || interaction.deferred) {
+			await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
+		} else {
+			await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+		}
+	}
 
-    const command = tokens.shift()
+});
 
-
-    if (command == "letra" || command == "traducao") {
-
-        const artist = tokens.slice(0, tokens.indexOf("-")).join(" ")
-        const song = tokens.slice(tokens.indexOf("-") + 1).join(" ")
-
-        fetch(`https://api.vagalume.com.br/search.php?art=${artist}&mus=${song}`)
-            .then(response => response.json())
-            .then(result => {
-
-                if (result.type == "notfound") {
-                    msg.channel.send("Não encontrei o artista " + artist)
-        
-                } else if (result.type == "song_notfound") {
-                    msg.channel.send("Não encontrei a música " + song)
-        
-                } else if (command == "letra") {
-                    msg.channel.send(result.mus[0].text)
-                }
-
-                else if (command == "traducao") {
-                    msg.channel.send(result.mus[0].translate[0].text)
-                }
-
-            })
-            .catch(err => {
-                msg.channel.send("Deu ruim aqui -> " + err)
-            })
-    }
-
-})
-
-client.login(process.env.DISCORD_TOKEN)
+client.login(token)
